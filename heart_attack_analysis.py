@@ -37,7 +37,7 @@ from catboost import CatBoostRegressor, CatBoostClassifier
 from sklearn.neural_network import MLPRegressor
 from sklearn.neural_network import MLPClassifier
 from sklearn.metrics import confusion_matrix,accuracy_score,classification_report
-from sklearn.metrics import roc_auc_score,roc_curve
+from sklearn.metrics import roc_auc_score,roc_curve,mean_squared_error
 from sklearn.model_selection import cross_val_score,cross_val_predict
 
 
@@ -378,3 +378,31 @@ plt.ylabel('models')
 plt.xlim(0,100)
 plt.title('Model accuracy comparasion')
 plt.show()
+#Special classification models
+#ANN 
+#using standart scaler
+mplc = MLPClassifier().fit(X_train_scaled,y_train)
+predict = mplc.predict(X_test_scaled)
+r2cv = cross_val_score(mplc,X_test_scaled,y_test,cv=10).mean()
+print(r2cv)
+error = mean_squared_error(y_test,predict)
+print(np.sqrt(error))
+
+#Tuning params for choosing best model
+params = {'n_estimators': [100, 500, 1000, 2000],
+          'subsample': [0.6, 0.8, 1.0],
+          'max_depth': [3, 4, 5, 6],
+          'learning_rate': [0.1, 0.01, 0.02, 0.05],
+          'min_child_samples': [5, 10, 20]}
+cv = GridSearchCV(mplc,params,verbose=False,cv=10,n_jobs=-1).fit(X_train,y_train)
+print(cv.best_params_)
+print(cv.best_score_)
+
+#Final result
+lgbmctuned = LGBMClassifier(learning_rate=0.01,max_depth=5,min_child_samples=10,
+                            n_estimators=100,subsample=0.6).fit(X_train,y_train)
+r2cv_tuned = cross_val_score(lgbmctuned,X_test,cv=10).mean()
+print(r2cv_tuned)
+error_tuned = -cross_val_score(lgbmctuned,X_test,cv=10,
+                               scoring='neg_mean_squared_error').mean()
+print(np.sqrt(error_tuned))
